@@ -1,0 +1,149 @@
+/********************************************************************************
+   Configuration for SST Track 2
+
+ = This sample assumes the following package structure.
+        * Model
+           + Track 2 - Requirements V&V
+              + RFP Model Data
+                 + 1 SysML v2 Specific Requirements
+                     + 1 Language Mandatory Requirements
+                         * Package-Req-Req-Req
+                     + 2 Language Non-mandatory Requirements
+                         * Package-Req-Req-Req
+                     + 3 API and Services Mandatory Requirements
+                         * Req-Req-Req
+                     + 4 API and Services Non-mandatory Requirements
+                         * Req-Req-Req
+********************************************************************************/
+import-ecore "http://www.nomagic.com/magicdraw/UML/2.5"
+import-ecore "http://maplembse.maplesoft.com/common/1.0" as mse
+
+workbook {
+    lazy-load worksheet PkgReqs(langMPkgReqsTable) { label = "1 Language Mandatory Req" }
+    lazy-load worksheet PkgReqs(langNPkgReqsTable) { label = "2 Language Non-mandatory Req" }
+    lazy-load worksheet Reqs(apiMReqsTable) { label = "3 API&Svc Mandatory Req" }
+    lazy-load worksheet Reqs(apiNReqsTable) { label = "4 API&Svc Non-mandatory Req" }
+}
+
+data-source Root[Model]
+data-source tr2Pkg = Root/packagedElement[Package|name="Track 2 - Requirements V&V"]
+data-source rfp = tr2Pkg/packagedElement[Package|name="RFP Model Data"]
+data-source specificReqs = rfp/packagedElement[Package|name="1 SysML v2 Specific Requirements"]
+data-source langMPkgReqs = specificReqs/packagedElement[Package|name="1 Language Mandatory Requirements"]/packagedElement[Package]
+data-source langNPkgReqs = specificReqs/packagedElement[Package|name="2 Language Non-mandatory Requirements"]/packagedElement[Package]
+data-source apiMReqs = specificReqs/packagedElement[Package|name="3 API and Services Mandatory Requirements"]/packagedElement[Class|mse::unofficial_metaclassNames="SysML::Requirements::Requirement,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtGrp"]
+data-source apiNReqs = specificReqs/packagedElement[Package|name="4 API and Services Non-mandatory Requirements"]/packagedElement[Class|mse::unofficial_metaclassNames="SysML::Requirements::Requirement,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtGrp"]
+
+
+synctable-schema PkgReqsTable {
+    record dim [Package] {
+        key column /name as PkgName
+    }
+
+    optional {
+        record dim /packagedElement[Package] {
+            key column /name as SubPkgName
+        }
+    }
+
+    record dim /packagedElement[Class|mse::unofficial_metaclassNames="SysML::Requirements::Requirement,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtGrp"] {
+        // column /mse::unofficial_metaclassNames as Name_0
+        column /name as Name_0
+        key column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Id"]/value[LiteralString]/value as ID_0
+        column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Text"]/value[LiteralString]/value as Spec_0
+
+        column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr::Change Status"]/value[EnumerationLiteral].enumeration as ChangeStatus_0
+        column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr::Review Comments"]/value[LiteralString]/value as ReviewComments_0
+    }
+
+    record dim /nestedClassifier[Class|mse::unofficial_metaclassNames="SysML::Requirements::Requirement,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtGrp"] {
+        column /name as Name_1
+        key column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Id"]/value[LiteralString]/value as ID_1
+        column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Text"]/value[LiteralString]/value as Spec_1
+    }
+
+    record dim /nestedClassifier[Class|mse::unofficial_metaclassNames="SysML::Requirements::Requirement,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr"] {
+        column /name as Name_2
+        key column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Id"]/value[LiteralString]/value as ID_2
+        column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Text"]/value[LiteralString]/value as Spec_2
+    }
+}
+
+synctable langMPkgReqsTable = PkgReqsTable<langMPkgReqs>
+synctable langNPkgReqsTable = PkgReqsTable<langNPkgReqs>
+
+worksheet-template PkgReqs(prt: PkgReqsTable) {
+    vertical table tab1 at (6, 1) = prt {
+        import-order 100
+        unmapped-field
+        key field PkgName : String
+        key field SubPkgName : String
+        key field ID_0 : String
+        field Name_0 : String
+        field Spec_0 : String
+        key field ID_1 : String
+        field Name_1 : String
+        field Spec_1 : String
+        key field ID_2 : String
+        field Name_2 : String
+        field Spec_2 : String
+
+        sort-keys PkgName, SubPkgName, ID_0, ID_1, ID_2
+    }
+}
+
+synctable-schema ReqsTable {
+    record dim [Class|mse::unofficial_metaclassNames="SysML::Requirements::Requirement,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtGrp"] {
+        column /name as Name_0
+        key column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Id"]/value[LiteralString]/value as ID_0
+        column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Text"]/value[LiteralString]/value as Spec_0
+    }
+
+    alternative {
+            record dim /nestedClassifier[Class|mse::unofficial_metaclassNames="SysML::Requirements::Requirement,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr"] {
+                column /name as Name_1
+                key column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Id"]/value[LiteralString]/value as ID_1
+                column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Text"]/value[LiteralString]/value as Spec_1
+            }
+        group {
+                record dim /nestedClassifier[Class|mse::unofficial_metaclassNames="SysML::Requirements::Requirement,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtGrp"] {
+                    column /name as Name_1G
+                    key column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Id"]/value[LiteralString]/value as ID_1G
+                    column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Text"]/value[LiteralString]/value as Spec_1G
+                }
+
+                record dim /nestedClassifier[Class|mse::unofficial_metaclassNames="SysML::Requirements::Requirement,Track 2 - Requirements V&V::RFP Model Data::SysML v2 RFP Profile::reqtComAttr"] {
+                    column /name as Name_2
+                    key column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Id"]/value[LiteralString]/value as ID_2
+                    column /appliedStereotypeInstance[InstanceSpecification]/slot[Slot|mse::featureName="SysML::Requirements::Requirement::Text"]/value[LiteralString]/value as Spec_2
+                }
+            }
+    }
+}
+
+synctable apiMReqsTable = ReqsTable<apiMReqs>
+synctable apiNReqsTable = ReqsTable<apiNReqs>
+
+worksheet-template Reqs(prt: ReqsTable) {
+    vertical table tab1 at (6, 1) = prt {
+        import-order 100
+        unmapped-field
+        key field ID_0 : String
+        field Name_0 : String
+        field Spec_0 : String
+        key field ID_1 : String
+        field Name_1 : String
+        field Spec_1 : String
+        key field ID_1G : String
+        field Name_1G : String
+        field Spec_1G : String
+        key field ID_2 : String
+        field Name_2 : String
+        field Spec_2 : String
+
+        sort-keys ID_0, ID_1, ID_2
+    }
+}
+
+
+
