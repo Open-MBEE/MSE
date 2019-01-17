@@ -1,0 +1,65 @@
+/********************************************************************************
+   Configuration for SST Track 4
+
+ = This sample assumes the following package structure.
+        * Model
+           + Track 4 - Metamodel Development
+              + SysML Metamodel
+                 + Abstract Syntax
+	         + Libraries
+********************************************************************************/
+import-ecore "http://www.nomagic.com/magicdraw/UML/2.5"
+import-ecore "http://maplembse.maplesoft.com/common/1.0" as mse
+
+workbook {
+    worksheet Metaclasses(metaclassesGenTable)
+}
+
+data-source Root[Model]
+data-source tr4Pkg = Root/packagedElement[Package|name="Track 4 - Metamodel Development"]
+data-source sysmlPkg = tr4Pkg/packagedElement[Package|name="SysML Metamodel"]
+data-source subPkgs = sysmlPkg/packagedElement[Package]
+data-source metaclasses = subPkgs/packagedElement[Package]/packagedElement[Class]
+
+synctable-schema MetaclassesTable {
+    record dim [Class] {
+	key column /name as MetaclassName
+    }
+}
+
+synctable-schema MetaclassesGenTable(metaclasses: MetaclassesTable) {
+    dim [Package] {
+        key column /name as PkgName
+    }
+
+    dim /packagedElement[Package] {
+        key column /name as PkgName2
+    }
+
+    record dim /packagedElement[Class] {
+	key column /name as MetaclassName
+    }
+    record dim /generalization[Generalization] {
+        key reference-query .general @ general
+	reference-decomposition general = metaclasses {
+	    foreign-key column MetaclassName as GName
+	}
+    }
+}
+
+synctable metaclassesTable = MetaclassesTable<metaclasses>
+synctable metaclassesGenTable = MetaclassesGenTable<subPkgs>(metaclassesTable)
+
+worksheet-template Metaclasses(mgt: MetaclassesGenTable) {
+    vertical table tab1 at (6, 1) = mgt {
+        import-order 100
+        unmapped-field
+        key field PkgName : String
+        key field PkgName2 : String
+        key field MetaclassName : String
+        field GName : String
+
+        sort-keys PkgName, PkgName2, MetaclassName, GName
+    }
+}
+
