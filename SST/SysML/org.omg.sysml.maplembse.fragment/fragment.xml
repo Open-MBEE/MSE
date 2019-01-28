@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fragment>
+   <extension
+         point="com.ibm.trinity.spi.ecore">
+      <adapter
+            class="com.ibm.trinity.spi.DefaultModelAccessAdapter"
+            extensions="sysml"
+            uri="http://www.omg.org/spec/SysML/2.0">
+      </adapter>
+   </extension>
+
+</fragment>

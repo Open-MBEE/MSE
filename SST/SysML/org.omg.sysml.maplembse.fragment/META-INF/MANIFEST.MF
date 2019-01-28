@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: MapleMBSE SysMLv2 Adaptation Fragment
+Bundle-SymbolicName: org.omg.sysml.maplembse.fragment;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: OMG
+Fragment-Host: com.ibm.trinity.spi
+Require-Bundle: com.ibm.trinity.spi;bundle-version="4.1.3"
