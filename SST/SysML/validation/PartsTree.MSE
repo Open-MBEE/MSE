@@ -1,0 +1,112 @@
+/********************************************************************************
+ Configuration for SysMLv2 Parts Tree
+ = This sample assumes the following package structure.
+
+********************************************************************************/
+
+import-ecore "http://www.omg.org/spec/SysML/2.0"
+
+workbook {
+    worksheet Members(membershipTable)
+    worksheet Definitions(definitionsTable, usagesTable)
+}
+
+data-source Root [Package]
+data-source top = Root/ownedMembership[Membership]
+// data-source classess = Root/ownedMembership[Membership]/ownedMemberElement[Class]
+
+synctable-schema MembershipTable {
+    record dim [Membership] {
+        key column /memberName as MembershipName
+    }
+    alternative {
+        record dim /ownedRelationship[Annotation] {
+            key column /ownedRelatedElement[Comment]/body as Comment
+        }
+        record dim /ownedMemberElement[Class] {
+            key column /ownedMembership[FeatureMembership]/memberName as ClassName
+        }
+        record dim /ownedMemberElement[Feature]  {
+            key column /ownedMembership[FeatureMembership]/memberName as FeatureName
+        }
+    }
+}
+
+synctable membershipTable = MembershipTable<top>
+
+worksheet-template Members(mt: MembershipTable) {
+    vertical table tab1 at (6, 1) = mt {
+        import-order 100
+        unmapped-field
+        key field MembershipName : String
+        key field Comment : String
+        key field ClassName : String
+        key field FeatureName : String
+
+        sort-keys MembershipName, ClassName, FeatureName
+    }
+}
+
+data-source defs = top/ownedMemberElement[Class]
+
+synctable-schema DefinitionsTable {
+    record dim [Class] {
+        key column .owningMembership[Membership]/memberName as Name
+    }
+    record dim /ownedMembership[FeatureMembership]/ownedMemberFeature[Feature] {
+        key column .owningFeatureMembership[FeatureMembership]/memberName as FeatureName
+    }
+}
+synctable definitionsTable = DefinitionsTable<defs>
+
+data-source usages = top/ownedMemberElement[Feature]
+
+synctable-schema UsagesTable(dt: DefinitionsTable) {
+    record dim [Feature] {
+        key column .owningMembership[Membership]/memberName as Name0
+        reference-query .type @ mf_0
+        reference-decomposition mf_0 = dt {
+            foreign-key column Name as TypeName0
+        }
+    }
+
+    record dim /ownedMembership[FeatureMembership]/ownedMemberFeature[Feature] {
+        key column .owningFeatureMembership[FeatureMembership]/memberName as Name1
+        reference-query .type @ mf_1
+        reference-decomposition mf_1 = dt {
+            foreign-key column Name as TypeName1
+        }
+    }
+    record dim /ownedMembership[FeatureMembership]/ownedMemberFeature[Feature] {
+        key column .owningFeatureMembership[FeatureMembership]/memberName as Name2
+        reference-query .type @ mf_2
+        reference-decomposition mf_2 = dt {
+            foreign-key column Name as TypeName2
+        }
+    }
+}
+synctable usagesTable = UsagesTable<usages>(definitionsTable)
+
+worksheet-template Definitions(dt: DefinitionsTable, ut: UsagesTable) {
+    vertical table tab1 at (6, 1) = dt {
+        import-order 100
+        unmapped-field
+        key field Name : String
+        key field FeatureName : String
+
+        sort-keys Name, FeatureName
+    }
+
+    vertical table tab2 at (6, 5) = ut {
+        import-order 100
+        unmapped-field
+        key field Name0
+        key field TypeName0
+        key field Name1
+        key field TypeName1
+        key field Name2
+        key field TypeName2
+
+        sort-keys Name0, Name1, Name2
+    }
+}
