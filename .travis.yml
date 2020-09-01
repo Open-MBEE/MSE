@@ -9,7 +9,7 @@ deploy:
   api_key:
     secure: bQJwJ1f7RV8XGMAgBRdDkGxjRQfS7ZKNcMexL6AtO3cz4sNbPYjxKZ/F8HYuLkduAfgZhgg7Vbs3+9ponxZJR5KynQoN9KVrHCelSOd5lo+H5diBWMkIDbOyujfRlRYoC9FsE4zQ5XxCgCP4LR+VpcFXRsKnuUaDqAH7DwTNAhuFyMdP7uGLY+EaF1ocENTbvQLngQnTuv9vwn9XAhVh4KP8RFlIGItwsJqomT2BVRU7ENz4GcCP+VVy/Xahroj+YzRQk2Cj4kJCEbpUmLd1BNjS1VDyrAVnDPspI8sDBAuEvdSA7I+yVY6TDVXMdWVOoJZp+Yq1I1Q2cIsRUV1LDJg2Ck/AbptUvgsba499zBZ/kAYyQMGM13y02Z3CbmeGddb5Q3qwtmsD/M0ZiwPPFPoMxrXeGtNxj8JPQZw152sSypYLcpv9cTfLuMUjcZzKPrx58RyY6pAsr0NFt+DmixYoA+bPnFxC8ICMHePNq5dQ1t1JL6LVj+WqBn3G2zhcnv6jIDYDrXCvS3+2JHmjjnfI1BrkBrmKxzqZVqczBaP8g4StwIlc3QPEZR4U1G/WDdqrdRPtG5B9VZspOWL+z93ypjnk0g494uXGSwyZssJVTcRr2WxVX6WDiPORRGFB2pnrY5GBikWYxPsq9Auh5gDiuCtkeuKVI4pbfZvXFjk=
   file_glob: true
-  file: subime-syntax/build/sublime/*
+  file: build/sublime/*
   skip_cleanup: true
   on:
     tags: true
