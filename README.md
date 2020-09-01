@@ -7,7 +7,7 @@ Share and collaboratively develop useful MapleMBSE configurations
  - Configurations for SST (SysMLv2 Submission Team)
 
 
-### [Sublime Text 3]((sublime-syntax)) Syntax
+### [Sublime Text 3 Syntax](sublime-syntax)
 ![Syntax Highlighting Preview](sublime-syntax/docs/preview-afterglow-markdown.png)
 
 
