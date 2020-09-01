@@ -1,0 +1,1676 @@
+%YAML 1.2
+---
+name: MapleMBSE MSE Configuration
+file_extensions:
+  - mse
+scope: source.mse
+
+variables:
+  HEX: '(?:[0-9A-Fa-f])'
+  UCHAR: '(?:\\u{{HEX}}{4}|\\U{{HEX}}{8})'
+
+  IRI_CONTENTS: '(?:[^\x{00}-\x{20}<>"{}|^`\\]*)'
+
+  EXPONENT: '([eE])([+-]?)([0-9]+)'
+  STRING: '[^\x{22}\x{5C}\x{0A}\x{0D}]'
+  ECHAR: '(?:\\[tbnrf"\\])'
+  
+  IDENTIFIER: '[a-zA-Z_][a-zA-Z_0-9]*'
+  INTEGER: '[0-9]+'
+
+contexts:
+  prototype:
+    - include: whitespace
+    - include: comment
+
+  whitespace:
+    - alone
+    - match: '\s+'
+      scope: meta.whitespace.SYNTAX
+
+  comment:
+    - alone
+    - include: line_comment
+    - include: block_comment
+
+
+  block_comment:
+    - match: '((\/\*))'
+      captures:
+        1: meta.comment.border.es
+        2: punctuation.definition.comment.begin.es
+      push: inside_block_comment
+
+  inside_block_comment:
+    - meta_scope: comment.block.es
+    - match: '((?:\*+)?(\*\/))'
+      captures:
+        1: meta.comment.border.es
+        2: punctuation.definition.comment.end.es
+      pop: true
+    - match: '(^\/)?((?!\*\/)\*)+'
+      scope: meta.comment.border.es
+    - match: '{{_SOMETHING}}'
+
+  line_comment:
+    - match: '((\/\/))'
+      captures:
+        1: meta.comment.border.es
+        2: punctuation.definition.comment.begin.es
+      push:
+        - meta_scope: comment.line.es
+        - match: '\n'
+          pop: true
+        - match: '\/\/+'
+          scope: meta.comment.border.es
+
+  id:
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.id.SYNTAX
+      pop: true
+
+  assignment:
+    - match: '='
+      scope: keyword.operator.assignment.generic.SYNTAX
+      pop: true
+
+  arguments:
+    - goto: [arguments_MORE*, id]
+
+  arguments_MORE:
+    - match: ','
+      scope: punctuation.separator.arguments.SYNTAX
+      set: id
+
+  iri:
+    - alone
+    - meta_scope: string.quoted.iri.SYNTAX
+    - match: '{{IRI_CONTENTS}}'
+    - match: '{{UCHAR}}'
+      scope: constant.character.escape.iri.SYNTAX
+    - close.dirk: iri.import-ecore
+      pop: true
+    - match: '\s'
+      scope: invalid.illegal.token.expected.iri.SYNTAX
+    - bail
+
+  string:
+    - open.dirk: literal
+      set: stringContents
+
+  stringContents:
+    - alone
+    - meta_scope: string.quoted.literal.SYNTAX
+    - match: '{{UCHAR}}'
+      scope: constant.character.escape.literal.SYNTAX
+    - close.dirk: literal
+      pop: true
+    - continue
+
+  main:
+    - goto: [statement*, workbookInstance, ecoreImport*]
+    - retry
+
+  ecoreImport:
+    - word: 'import-ecore'
+      set: ecoreImport_AFTER_KEYWORD
+
+  ecoreImport_AFTER_KEYWORD:
+    - open.dirk: iri.import-ecore
+      set: [ecoreImport_AFTER_IRI?, iri]
+
+  ecoreImport_AFTER_IRI:
+    - word.exact: as
+      set: id
+
+  workbookInstance:
+    - word.exact: workbook
+      scope: storage.type.workbook.SYNTAX
+      set: workbookInstance_AFTER_KEYWORD
+
+  workbookInstance_AFTER_KEYWORD:
+    - open.brace: workbook-instance
+      set: [workbookInstance_TERMINATE, worksheets*]
+
+  worksheets:
+    - word.exact: worksheet
+      scope: storage.type.worksheet.SYNTAX
+      set: worksheet_AFTER_KEYWORD
+
+  worksheet_AFTER_KEYWORD:
+    - goto: [worksheet_AFTER_ID, worksheetTemplateReference]
+
+  worksheetTemplateReference:
+    - match: '{{IDENTIFIER}}'
+      scope: variable.function.worksheet-template.SYNTAX
+      pop: true
+
+  worksheet_AFTER_ID:
+    - open.paren: worksheet-call
+      set: [worksheetCall_TERMINATE, arguments?]
+
+  worksheetCall_TERMINATE:
+    - close.paren: worksheet-call
+      pop: true
+
+  workbookInstance_TERMINATE:
+    - close.brace: workbook-instance
+      pop: true
+
+  statement:
+    - switch:
+      - dataSource
+      - syncTableSchema
+      - syncTable
+      - worksheetTemplate
+
+  dataSource:
+    - word.exact: data-source
+      scope: storage.type.data-source.SYNTAX
+      set: dataSource_AFTER_KEYWORD
+
+  dataSource_AFTER_KEYWORD:
+    - word.exact: Root
+      scope: support.class.builtin.root.SYNTAX
+      set: qualifier
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.data-source.SYNTAX
+      set: [objectQueryExpr, dataSourceThing, assignment]
+
+  dataSourceThing:
+    - word.exact: Root
+      scope: support.class.builtin.root.SYNTAX
+      pop: true
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.data-source.SYNTAX
+      pop: true
+
+  objectQueryExpr:
+    - goto: queryPathExpr
+      mask: meta.expression.query-path.object.SYNTAX
+
+  syncTableSchema:
+    - word.exact: synctable-schema
+      scope: storage.type.sync-table-schema.SYNTAX
+      set: [syncTableSchemaDimensions, syncTableSchemaParams?, syncTableSchemaId]
+
+  syncTableSchemaParams:
+    - open.paren: group.sync-table
+      set: [syncTableSchemaParams_TERMINATE, syncTableSchema_MORE*, syncTableParam]
+    - bail
+
+  syncTableSchemaParams_TERMINATE:
+    - close.paren: group.sync-table
+      pop: true
+
+  syncTableSchemaDimensions:
+    - open.brace: sync-table-dimensions
+      set: [syncTableSchemaDimensions_TERMINATE, abstractDimension*, topLevelDimension]
+
+  syncTableSchemaDimensions_TERMINATE:
+    - close.brace: sync-table-dimensions
+      pop: true
+
+  syncTableSchema_MORE:
+    - match: ','
+      scope: punctuation.separator.sync-table-schema.SYNTAX
+      set: syncTableParam
+
+  syncTableParam:
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.sync-table-param.SYNTAX
+      set: syncTableParam_AFTER_ID
+
+  syncTableParam_AFTER_ID:
+    - match: ':'
+      scope: punctuation.separator.sync-table-param.SYNTAX
+      set: syncTableParam_AFTER_SEPARATOR
+
+  syncTableParam_AFTER_SEPARATOR:
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.sync-table-schema-id.SYNTAX
+      pop: true
+
+  topLevelDimension:
+    - lookahead: '(record|dim){{_WORD_BOUNDARY}}'
+    - goto: [dimensionMemberGroup, qualifier, dim, record?]
+
+  record:
+    - word.exact: record
+      scope: storage.type.record.SYNTAX
+      pop: true
+
+  dim:
+    - word.exact: dim
+      pop: true
+
+  dimensionMemberGroup:
+    - open.brace: group.dimension-member
+      set: [dimensionMemberGroup_TERMINATE, dimensionMember*]
+
+  dimensionMemberGroup_TERMINATE:
+    - close.brace: group.dimension-member
+      pop: true
+
+  abstractDimension:
+    - switch:
+      - successiveDimension
+      - dimensionGroup
+
+  successiveDimension:
+    - goto: [dimensionMemberGroup, queryPathExpr, dim, record?]
+
+  dimensionGroup:
+    - words.exact:
+      - alternative
+      - optional
+      - group
+      scope: storage.type.dimension-group.WORD.SYNTAX
+      set: dimensionGroupSub
+
+  dimensionGroupSub:
+    - open.brace: group.dimension-member-sub
+      set: [dimensionGroupSub_TERMINATE, abstractDimension*]
+
+  dimensionGroupSub_TERMINATE:
+    - close.brace: group.dimension-member-sub
+      pop: true
+
+  dimensionMember:
+    - switch:
+      - propertyMapping
+      - referenceDecomposition
+
+  propertyMapping:
+    - lookahead: '(key|column){{_WORD_BOUNDARY}}'
+    - goto: [propertyMapping_AFTER_KEY, key?]
+
+  propertyMapping_AFTER_KEY:
+    - switch:
+      - attributeColumn
+      - referenceQuery
+
+  attributeColumn:
+    - word.exact: column
+      scope: storage.type.column.SYNTAX
+      set: [attributeColumn_AFTER_EXPR, objectQueryExpr]
+
+  attributeColumn_AFTER_EXPR:
+    - word.exact: as
+      set: id
+
+  # 
+
+  key:
+    - word.exact: key
+      scope: storage.modifier.key.SYNTAX
+
+  referenceQuery:
+    - word.exact: reference-query
+      scope: storage.type.reference-query.SYNTAX
+      set: referenceQuery_AFTER_KEYWORD
+
+  referenceQuery_AFTER_KEYWORD:
+    - goto: objectQueryExpr
+      mask: meta.expression.object-path.reference-query.SYNTAX
+
+  referenceDecomposition:
+    - word.exact: reference-decomposition
+      scope: storage.type.reference-decomposition.SYNTAX
+      set: [referenceDecomposition_AFTER_ASSIGNMENT, assignment, id]
+
+  referenceDecomposition_AFTER_ASSIGNMENT:
+    - throw
+
+
+  #
+
+  syncTable:
+    - word.exact: synctable
+      scope: storage.type.sync-table.SYNTAX
+      set: syncTable_AFTER_KEYWORD
+
+  syncTable_AFTER_KEYWORD:
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.sync-table.SYNTAX
+      set: [syncTableTarget, syncTableSchemaId, assignment]
+
+  syncTableSchemaId:
+    - match: '{{IDENTIFIER}}'
+      scope: entity.name.class.sync-table-schema.SYNTAX variable.other.readwrite.sync-table-schema.SYNTAX
+      pop: true
+
+  syncTableTarget:
+    - open.tag: definition.generic.sync-table.data-source
+      set: [syncTableTarget_TERMINATE, dataSourceId]
+
+  syncTableTarget_TERMINATE:
+    - close.tag: definition.generic.sync-table.data-source
+      set: syncTable_AFTER_TARGET
+
+  syncTable_AFTER_TARGET:
+    - open.paren: list.sync-table
+      set: [syncTableIdList_TERMINATE, syncTableId_MORE*, syncTableId]
+    - bail
+
+  syncTableId_MORE:
+    - match: ','
+      scope: punctuation.separator.sync-table-id.SYNTAX
+      set: syncTableId
+
+  syncTableIdList_TERMINATE:
+    - close.paren: list.sync-table
+      pop: true
+
+  syncTableId:
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.sync-table.SYNTAX
+      pop: true
+
+  dataSourceId:
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.data-source.SYNTAX
+      pop: true
+
+  # 
+
+  worksheetTemplate:
+    - word.exact: worksheet-template
+      scope: storage.type.worksheet-template.SYNTAX
+      set: [worksheetTemplateParams, worksheetTemplateId]
+
+  worksheetTemplateId:
+    - match: '{{IDENTIFIER}}'
+      scope: entity.name.function.worksheet-template.SYNTAX
+      pop: true
+
+  worksheetTemplateParams:
+    - open.paren: list.worksheet-template-param
+      set: [worksheetTemplate_AFTER_PARAMS, worksheetTemplateParam_MORE*, worksheetTemplateParam]
+
+  worksheetTemplateParam_MORE:
+    - match: ','
+      scope: punctuation.separator.worksheet-template-param.SYNTAX
+      set: worksheetTemplateParam
+
+  worksheetTemplateParam:
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.worksheet-template-param.SYNTAX
+      set: worksheetTemplateParam_AFTER_ID
+
+  worksheetTemplateParam_AFTER_ID:
+    - match: ':'
+      scope: punctuation.separator.worksheet-template-param.SYNTAX
+      set: worksheetTemplateParam_AFTER_SEPARATOR
+
+  worksheetTemplateParam_AFTER_SEPARATOR:
+    - match: '{{IDENTIFIER}}'
+      scope: entity.name.class.param.SYNTAX
+      pop: true
+
+
+  worksheetTemplate_AFTER_PARAMS:
+    - close.paren: list.worksheet-template-param
+      set: worksheetTemplateViews
+
+  worksheetTemplateViews:
+    - open.brace: definition.group.view-layout.worksheet-template
+      set: [worksheetTemplateViews_TERMINATE, viewLayout*]
+
+  worksheetTemplateViews_TERMINATE:
+    - close.brace: definition.group.view-layout.worksheet-template
+      pop: true
+
+  viewLayout:
+    - switch:
+      - tableViewLayout
+      # - matrixViewLayout
+
+  tableViewLayout:
+    - words.exact:
+      - vertical
+      - horizontal
+      scope: storage.modifier.table-view-orientation.WORD.SYNTAX
+      set: tableViewLayout_AFTER_ORIENTATION
+
+  tableViewLayout_AFTER_ORIENTATION:
+    - word.exact: table
+      scope: storage.type.table.SYNTAX
+      set: [tableViewLayout_AFTER_ID, id]
+
+  tableViewLayout_AFTER_ID:
+    - word.exact: at
+      set: [tableViewLayout_AFTER_ASSIGNMENT, assignment, cellAddr]
+
+  tableViewLayout_AFTER_ASSIGNMENT:
+    - goto: [tableViewLayoutBody, id]
+
+  tableViewLayoutBody:
+    - open.brace: group.table-view-layout-body
+      set: tableViewLayoutBody_AFTER_BRACE
+
+  tableViewLayoutBody_AFTER_BRACE:
+    - goto: [tableViewLayoutBody_TERMINATE, sortKeys?, viewColumn*, enableImport?, importOrder?]
+
+  tableViewLayoutBody_TERMINATE:
+    - close.brace: group.table-view-layout-body
+      pop: true
+
+  importOrder:
+    - word.exact: import-order
+      set: importOrder_AFTER_KEYWORD
+
+  importOrder_AFTER_KEYWORD:
+    - match: '{{INTEGER}}'
+      scope: constant.numeric.import-order.SYNTAX
+      pop: true
+
+  enableImport:
+    - word.exact: enable-import
+      set: enableImport_AFTER_KEYWORD
+
+  enableImport_AFTER_KEYWORD:
+    - words:
+      - true
+      - false
+      scope: constant.boolean.WORD.SYNTAX
+      pop: true
+
+  ref:
+    - word.exact: ref
+      scope: storage.modifier.view-column.ref.SYNTAX
+      pop: true
+
+  field:
+    - word.exact: field
+      scope: storage.type.view-column.field.SYNTAX
+      pop: true
+
+  viewColumn:
+    - goto: [viewColumn_AFTER_ID, id, field, ref?, key?]
+
+  viewColumn_AFTER_ID:
+    - match: ':'
+      scope: punctuation.separator.column-type.SYNTAX
+      set: viewColumnType
+
+  viewColumnType:
+    - words.exact:
+      - String
+      - Integer
+      - Double
+      scope: support.type.WORD.SYNTAX
+      set: viewColumnType_AFTER_TYPE
+
+  viewColumnType_AFTER_TYPE:
+    - match: '\[\]'
+      scope: punctuation.definition.view-column-type.array.SYNTAX
+      set: viewColumnType_APPEND
+    - goto: viewColumnType_APPEND
+
+  viewColumnType_APPEND:
+    - match: ';'
+      scope: punctuation.separator.view-column-type.SYNTAX
+      set: [viewColumnTypeQuote, viewColumnType_APPEND_AFTER_SEMICOLON]
+    - goto: viewColumnTypeQuote
+
+  viewColumnType_APPEND_AFTER_SEMICOLON:
+    - word.exact: delimiter
+      set: viewColumnType_APPEND_AFTER_DELIMITER
+
+  viewColumnType_APPEND_AFTER_DELIMITER:
+    - match: '='
+      scope: punctuation.definition.view-column-type.delimiter.SYNTAX
+      pop: true
+
+  viewColumnTypeQuote:
+    - match: ';'
+      scope: punctuation.separator.view-column-type.SYNTAX
+      set: viewColumnTypeQuote_AFTER_SEMICOLON
+    - bail
+
+  viewColumnTypeQuote_AFTER_SEMICOLON:
+    - word.exact: quote
+      set: viewColumnTypeQuote_AFTER_QUOTE
+
+  viewColumnTypeQuote_AFTER_QUOTE:
+    - match: '='
+      scope: punctuation.definition.view-column-type.delimiter.SYNTAX
+      set: string
+
+  sortKeys:
+    - word.exact: sort-keys
+      set: arguments
+
+  #
+
+  cellAddr:
+    - open.paren: cell-addr
+      set: cellAddrCoords
+
+  cellAddrCoords:
+    - match: '{{INTEGER}}'
+      scope: constant.numeric.coordinate.cell-addr.x.SYNTAX
+      set: cellAddrCoords_AFTER_X
+
+  cellAddrCoords_AFTER_X:
+    - match: ','
+      scope: punctuation.separator.coordinate.cell-addr.SYNTAX
+      set: cellAddrCoords_AFTER_SEPARATOR
+
+  cellAddrCoords_AFTER_SEPARATOR:
+    - match: '{{INTEGER}}'
+      scope: constant.numeric.coordinate.cell-addr.y.SYNTAX
+      set: cellAddrCoords_AFTER_Y
+
+  cellAddrCoords_AFTER_Y:
+    - close.paren: cell-addr
+      pop: true
+
+  #
+
+  queryPathExpr:
+    - goto: [queryPathExpr_AFTER_LOCAL, localQueryExpr+]
+
+  queryPathExpr_AFTER_LOCAL:
+    - match: '@'
+      scope: punctuation.definition.variable.reference-decomposition-id.SYNTAX
+      set: id
+    - bail
+
+  localQueryExpr:
+    - match: '/'
+      scope: punctuation.separator.path.attribute.SYNTAX
+      set: [qualifier?, attributeId]
+    - match: '\.'
+      scope: punctuation.accessor.path.reference.SYNTAX
+      set: [qualifier?, referenceId]
+
+  attributeId:
+    - match: '({{IDENTIFIER}})(::)'
+      captures:
+        1: variable.other.readwrite.attribute.SYNTAX
+        2: punctuation.separator.ecore-import-id.attribute.SYNTAX
+      set: attribute
+    - goto: attribute
+
+  referenceId:
+    - match: '({{IDENTIFIER}})(::)'
+      captures:
+        1: variable.other.readwrite.reference.SYNTAX
+        2: punctuation.separator.ecore-import-id.attribute.SYNTAX
+      set: reference
+    - goto: reference
+
+  qualifier:
+    - open.bracket: section.brackets.qualifier
+      set: [qualifier_TERMINATE, qualifier_AFTER_CLASSIFIER?, classifierId]
+
+  qualifier_AFTER_CLASSIFIER:
+    - match: '\|'
+      scope: punctuation.keyword.operator.qualifier.filter.SYNTAX
+      set: [attributeFilter_MORE*, attributeFilter]
+    - bail
+
+  attributeFilter_MORE:
+    - match: ','
+      scope: punctuation.separator.qualifier.SYNTAX
+      set: attributeFilter
+
+  qualifier_TERMINATE:
+    - close.bracket: section.brackets.qualifier
+      pop: true
+
+  classifierId:
+    - match: '({{IDENTIFIER}})(::)'
+      captures:
+        1: variable.other.readwrite.classifier.SYNTAX
+        2: punctuation.separator.ecore-import-id.attribute.SYNTAX
+      set: classifier
+    - goto: classifier
+
+  attributeFilter:
+    - goto: [attributeFilter_AFTER_ASSIGNMENT, assignment, attributeId]
+
+  attributeFilter_AFTER_ASSIGNMENT:
+    - open.dirk: expression
+      set: expression
+
+  expression:
+    - alone
+    - meta_scope: string.quoted.double.expression.SYNTAX
+    - match: '{{STRING}}'
+    - close.dirk: expression
+      pop: true
+    - match: '{{ECHAR}}'
+      scope: constant.character.escape.expression.escape.SYNTAX
+    - match: '\\'''
+      scope: constant.character.escape.expression.escape.pointless.SYNTAX
+    - match: '{{UCHAR}}'
+      scope: constant.character.escape.expression.unicode.SYNTAX
+    - match: '\\.'
+      scope: invalid.illegal.escape.SYNTAX
+      pop: true
+    - match: '\n'
+      scope: invalid.illegal.newline.expression.SYNTAX
+      pop: true
+
+  virtualFeature:
+    - words.exact:
+      - metaclassName
+      - featureName
+      scope: support.module.virtual-feature.stereotype.WORD.SYNTAX
+      pop: true
+    - words.exact:
+      - associatedProperty
+      - directAssociatedProperty
+      - otherAssociatedEnd
+      scope: support.module.virtual-feature.association.WORD.SYNTAX
+      pop: true
+    - words.exact:
+      - connectedPropertyOrPort
+      - otherConnectorEnd
+      scope: support.module.virtual-feature.connector.WORD.SYNTAX
+      pop: true
+    - words.exact:
+      - clientDependencies
+      - supplierDependencies
+      scope: support.module.virtual-feature.dependency.WORD.SYNTAX
+      pop: true
+    - words.exact:
+      - multiplicityProperty
+      scope: support.module.virtual-feature.util.WORD.SYNTAX
+      pop: true
+
+  classifier:
+    - words.exact:
+      - StateMachine
+      - ProtocolTransition
+      - Transition
+      - Region
+      - Namespace
+      - Trigger
+      - InterfaceRealization
+      - DataType
+      - Enumeration
+      - EnumerationLiteral
+      - BehavioralFeature
+      - Signal
+      - ExtensionEnd
+      - Stereotype
+      - Image
+      - Model
+      - Package
+      - PackageMerge
+      - ProfileApplication
+      - Profile
+      - ElementImport
+      - PackageImport
+      - ActionExecutionSpecification
+      - ExecutionSpecification
+      - Action
+      - BehaviorExecutionSpecification
+      - CombinedFragment
+      - InteractionFragment
+      - Gate
+      - InteractionOperand
+      - ConsiderIgnoreFragment
+      - Continuation
+      - DestructionOccurrenceSpecification
+      - MessageOccurrenceSpecification
+      - ExecutionOccurrenceSpecification
+      - OccurrenceSpecification
+      - MessageEnd
+      - GeneralOrdering
+      - Interaction
+      - Lifeline
+      - Message
+      - InteractionConstraint
+      - InteractionUse
+      - PartDecomposition
+      - StateInvariant
+      - InformationFlow
+      - InformationItem
+      - Artifact
+      - DeployedArtifact
+      - Manifestation
+      - CommunicationPath
+      - Deployment
+      - DeploymentSpecification
+      - DeploymentTarget
+      - Device
+      - Node
+      - ExecutionEnvironment
+      - Abstraction
+      - Comment
+      - TemplateSignature
+      - TemplateBinding
+      - TemplateParameterSubstitution
+      - Usage
+      - AnyReceiveEvent
+      - MessageEvent
+      - ParameterSet
+      - CallEvent
+      - ChangeEvent
+      - Event
+      - FunctionBehavior
+      - OpaqueBehavior
+      - SignalEvent
+      - TimeEvent
+      - Substitution
+      - Generalization
+      - RedefinableTemplateSignature
+      - GeneralizationSet
+      - ClassifierTemplateParameter
+      - Slot
+      - InstanceValue
+      - OperationTemplateParameter
+      - StructuralFeature
+      - ValueSpecificationAction
+      - OutputPin
+      - VariableAction
+      - WriteLinkAction
+      - LinkAction
+      - WriteStructuralFeatureAction
+      - StructuralFeatureAction
+      - InputPin
+      - WriteVariableAction
+      - AcceptCallAction
+      - AcceptEventAction
+      - ActionInputPin
+      - AddStructuralFeatureValueAction
+      - AddVariableValueAction
+      - BroadcastSignalAction
+      - InvocationAction
+      - CallAction
+      - CallBehaviorAction
+      - CallOperationAction
+      - Clause
+      - ClearAssociationAction
+      - ClearStructuralFeatureAction
+      - ClearVariableAction
+      - ConditionalNode
+      - CreateLinkAction
+      - LinkEndCreationData
+      - CreateLinkObjectAction
+      - CreateObjectAction
+      - DestroyLinkAction
+      - LinkEndDestructionData
+      - DestroyObjectAction
+      - ExpansionNode
+      - ExpansionRegion
+      - Pin
+      - LinkEndData
+      - QualifierValue
+      - LoopNode
+      - OpaqueAction
+      - RaiseExceptionAction
+      - ReadExtentAction
+      - ReadIsClassifiedObjectAction
+      - ReadLinkAction
+      - ReadLinkObjectEndAction
+      - ReadLinkObjectEndQualifierAction
+      - ReadSelfAction
+      - ReadStructuralFeatureAction
+      - ReadVariableAction
+      - ReclassifyObjectAction
+      - ReduceAction
+      - RemoveStructuralFeatureValueAction
+      - RemoveVariableValueAction
+      - ReplyAction
+      - SendObjectAction
+      - SendSignalAction
+      - SequenceNode
+      - StartClassifierBehaviorAction
+      - StartObjectBehaviorAction
+      - TestIdentityAction
+      - UnmarshallAction
+      - ValuePin
+      - Element
+      - InstanceSpecification
+      - PrimitiveType
+      - Activity
+      - Behavior
+      - ActivityEdge
+      - ActivityGroup
+      - ActivityNode
+      - ActivityPartition
+      - StructuredActivityNode
+      - Variable
+      - RedefinableElement
+      - ValueSpecification
+      - InterruptibleActivityRegion
+      - ActivityFinalNode
+      - FinalNode
+      - NamedElement
+      - ActivityParameterNode
+      - ObjectNode
+      - Parameter
+      - CentralBufferNode
+      - ControlFlow
+      - ControlNode
+      - DataStoreNode
+      - DecisionNode
+      - ObjectFlow
+      - ExceptionHandler
+      - Classifier
+      - ExecutableNode
+      - FlowFinalNode
+      - ForkNode
+      - InitialNode
+      - JoinNode
+      - MergeNode
+      - TypedElement
+      - State
+      - ConnectableElement
+      - MultiplicityElement
+      - Duration
+      - Observation
+      - DurationConstraint
+      - IntervalConstraint
+      - DurationInterval
+      - Interval
+      - DurationObservation
+      - Expression
+      - Constraint
+      - LiteralBoolean
+      - LiteralSpecification
+      - LiteralInteger
+      - LiteralNull
+      - LiteralReal
+      - LiteralString
+      - LiteralUnlimitedNatural
+      - PackageableElement
+      - OpaqueExpression
+      - StringExpression
+      - TemplateableElement
+      - TimeConstraint
+      - TimeInterval
+      - TimeExpression
+      - TimeObservation
+      - Actor
+      - BehavioredClassifier
+      - Extend
+      - DirectedRelationship
+      - UseCase
+      - ExtensionPoint
+      - Include
+      - Association
+      - Relationship
+      - Type
+      - Property
+      - AssociationClass
+      - Class
+      - EncapsulatedClassifier
+      - Extension
+      - Operation
+      - Reception
+      - Collaboration
+      - StructuredClassifier
+      - CollaborationUse
+      - Dependency
+      - Component
+      - Interface
+      - ComponentRealization
+      - Realization
+      - ParameterableElement
+      - ConnectorEnd
+      - ConnectableElementTemplateParameter
+      - TemplateParameter
+      - Connector
+      - Feature
+      - Port
+      - ProtocolStateMachine
+      - ConnectionPointReference
+      - Vertex
+      - Pseudostate
+      - FinalState
+      - ProtocolConformance
+      scope: entity.name.tag.classifier.WORD.SYNTAX
+      pop: true
+
+  reference:
+    - words.exact:
+      - qualifier
+      - predecessorClause
+      - successorClause
+      - clause
+      - endData
+      - regionAsInput
+      - regionAsOutput
+      - inputElement
+      - outputElement
+      - source
+      - target
+      - parameter
+      - roleBinding
+      - provided
+      - realization
+      - required
+      - end
+      - templateParameter
+      - parameteredElement
+      - contract
+      - redefinedConnector
+      - ownedPort
+      - protocol
+      - redefinedPort
+      - ownedConnector
+      - entry
+      - exit
+      - generalMachine
+      - specificMachine
+      - conformance
+      - subvertex
+      - connection
+      - connectionPoint
+      - redefinedVertex
+      - redefinedInterface
+      - connector
+      - realizingConnector
+      - owningTemplateParameter
+      - default
+      - ownedDefault
+      - ownedParameteredElement
+      - actual
+      - formal
+      - ownedActual
+      - ownedParameter
+      - port
+      - collaborationUse
+      - feature
+      - representation
+      - interface
+      - inheritedParameter
+      - onPort
+      - represents
+      - exceptionType
+      - handlerBody
+      - protectedNode
+      - handler
+      - inState
+      - observation
+      - specification
+      - max
+      - min
+      - body
+      - subject
+      - nestedClassifier
+      - ownedOperation
+      - ownedReception
+      - collaborationRole
+      - type
+      - abstraction
+      - realizingClassifier
+      - role
+      - state
+      - referred
+      - redefinitionContext
+      - submachineState
+      - conveyed
+      - clientDependency
+      - operation
+      - redefinedClassifier
+      - redefinedOperation
+      - test
+      - bodyPart
+      - setupPart
+      - executableNode
+      - incoming
+      - outgoing
+      - result
+      - ownedEnd
+      - stateMachine
+      - extendedRegion
+      - transition
+      - deferrableTrigger
+      - region
+      - submachine
+      - extendedStateMachine
+      - container
+      - redefinedTransition
+      - trigger
+      - interfaceRealization
+      - ownedLiteral
+      - classifier
+      - enumeration
+      - signal
+      - context
+      - importingNamespace
+      - namespace
+      - datatype
+      - returnInformation
+      - output
+      - bodyOutput
+      - decider
+      - replyToCall
+      - decisionInputFlow
+      - exceptionInput
+      - extension
+      - endType
+      - memberEnd
+      - navigableOwnedEnd
+      - ownedAttribute
+      - superClass
+      - metaclass
+      - ownedType
+      - represented
+      - substitutingClassifier
+      - raisedException
+      - general
+      - constrainingClassifier
+      - featuringClassifier
+      - specific
+      - powertype
+      - class
+      - newClassifier
+      - oldClassifier
+      - unmarshallType
+      - value
+      - argument
+      - slot
+      - definingFeature
+      - input
+      - insertAt
+      - object
+      - inputValue
+      - destroyAt
+      - loopVariable
+      - loopVariableInput
+      - outputValue
+      - exception
+      - collection
+      - removeAt
+      - replyValue
+      - request
+      - structuralFeature
+      - structuredNodeInput
+      - structuredNodeOutput
+      - first
+      - second
+      - guard
+      - owningExpression
+      - subExpression
+      - condition
+      - extendedCase
+      - extensionLocation
+      - useCase
+      - addition
+      - includingCase
+      - extend
+      - extensionPoint
+      - include
+      - packagedElement
+      - definingEnd
+      - partWithPort
+      - part
+      - postCondition
+      - preCondition
+      - implementingClassifier
+      - returnValueRecipient
+      - deployedElement
+      - utilizedElement
+      - mapping
+      - importedElement
+      - nameExpression
+      - importedMember
+      - ownedRule
+      - boundElement
+      - template
+      - when
+      - attribute
+      - ownedUseCase
+      - association
+      - associationEnd
+      - opposite
+      - owningAssociation
+      - redefinedProperty
+      - subsettedProperty
+      - location
+      - nestedPackage
+      - nestingPackage
+      - ownedStereotype
+      - packageMerge
+      - profileApplication
+      - mergedPackage
+      - receivingPackage
+      - metaclassReference
+      - metamodelReference
+      - appliedProfile
+      - applyingPackage
+      - icon
+      - profile
+      - action
+      - decomposedAs
+      - manifestation
+      - nestedArtifact
+      - configuration
+      - deployedArtifact
+      - deployment
+      - nestedNode
+      - ownedComment
+      - elementImport
+      - packageImport
+      - importedPackage
+      - package
+      - fromAction
+      - activity
+      - inGroup
+      - inActivity
+      - superGroup
+      - activityScope
+      - event
+      - operand
+      - cfragmentGate
+      - message
+      - execution
+      - finish
+      - start
+      - after
+      - before
+      - formalGate
+      - fragment
+      - lifeline
+      - covered
+      - enclosingInteraction
+      - enclosingOperand
+      - generalOrdering
+      - actualGate
+      - refersTo
+      - coveredBy
+      - interaction
+      - receiveEvent
+      - sendEvent
+      - signature
+      - toAfter
+      - toBefore
+      - realizingMessage
+      - annotatedElement
+      - constrainedElement
+      - ownedElement
+      - owner
+      - relatedElement
+      - ownedTemplateSignature
+      - templateBinding
+      - parameterSubstitution
+      - ownedParameterSet
+      - generalization
+      - powertypeExtent
+      - substitution
+      - generalizationSet
+      - parameterSet
+      - extendedSignature
+      - group
+      - edge
+      - node
+      - partition
+      - structuredNode
+      - variable
+      - inPartition
+      - inStructuredNode
+      - interrupts
+      - redefinedEdge
+      - weight
+      - containedEdge
+      - containedNode
+      - subgroup
+      - inInterruptibleRegion
+      - redefinedNode
+      - subpartition
+      - superPartition
+      - decisionInput
+      - interruptingEdge
+      - joinSpec
+      - selection
+      - transformation
+      - upperBound
+      - scope
+      - expr
+      - behavior
+      - doActivity
+      - stateInvariant
+      - effect
+      - classifierBehavior
+      - ownedBehavior
+      - maxint
+      - minint
+      - returnValue
+      - selector
+      - invariant
+      - informationSource
+      - informationTarget
+      - realizingActivityEdge
+      - client
+      - supplier
+      - lowerValue
+      - upperValue
+      - member
+      - ownedMember
+      - postcondition
+      - precondition
+      - redefinedBehavior
+      - changeExpression
+      - method
+      - inheritedMember
+      - instance
+      - bodyCondition
+      - defaultValue
+      - redefinedElement
+      - owningInstance
+      - localPostcondition
+      - localPrecondition
+      - reducer
+      scope: entity.other.attribute-name.reference.WORD.SYNTAX
+      pop: true
+
+  attribute:
+    - words.exact:
+      - source
+      - target
+      - guard
+      - incoming
+      - outgoing
+      - represents
+      - operand
+      - behavior
+      - ownedEnd
+      - nestedClassifier
+      - ownedAttribute
+      - ownedOperation
+      - ownedReception
+      - type
+      - packagedElement
+      - contract
+      - kind
+      - protocol
+      - redefinitionContext
+      - submachineState
+      - container
+      - effect
+      - redefinedTransition
+      - trigger
+      - redefinedVertex
+      - classifierBehavior
+      - interfaceRealization
+      - ownedBehavior
+      - ownedLiteral
+      - classifier
+      - enumeration
+      - redefinedInterface
+      - implementingClassifier
+      - signal
+      - isRequired
+      - metaclass
+      - lower
+      - content
+      - format
+      - location
+      - viewpoint
+      - URI
+      - nestedPackage
+      - nestingPackage
+      - ownedStereotype
+      - ownedType
+      - packageMerge
+      - profileApplication
+      - mergedPackage
+      - receivingPackage
+      - metaclassReference
+      - metamodelReference
+      - appliedProfile
+      - applyingPackage
+      - isStrict
+      - icon
+      - profile
+      - action
+      - cfragmentGate
+      - interactionOperator
+      - message
+      - setting
+      - execution
+      - finish
+      - start
+      - after
+      - before
+      - formalGate
+      - fragment
+      - lifeline
+      - maxint
+      - minint
+      - covered
+      - enclosingInteraction
+      - enclosingOperand
+      - generalOrdering
+      - actualGate
+      - argument
+      - refersTo
+      - returnValue
+      - returnValueRecipient
+      - coveredBy
+      - decomposedAs
+      - interaction
+      - selector
+      - connector
+      - clientDependency
+      - elementImport
+      - packageImport
+      - redefinedClassifier
+      - isReadOnly
+      - variable
+      - parameter
+      - specification
+      - value
+      - result
+      - condition
+      - useCase
+      - isDerived
+      - isAbstract
+      - templateParameter
+      - parameteredElement
+      - isComposite
+      - context
+      - isOrdered
+      - isUnique
+      - upper
+      - ownedTemplateSignature
+      - default
+      - ownedParameter
+      - ownedParameterSet
+      - postcondition
+      - precondition
+      - operation
+      - substitutingClassifier
+      - concurrency
+      - method
+      - raisedException
+      - collaborationUse
+      - general
+      - generalization
+      - inheritedMember
+      - isFinalSpecialization
+      - ownedUseCase
+      - powertypeExtent
+      - representation
+      - substitution
+      - allowSubstitutable
+      - constrainingClassifier
+      - featuringClassifier
+      - isStatic
+      - generalizationSet
+      - isSubstitutable
+      - specific
+      - isCovering
+      - isDisjoint
+      - powertype
+      - slot
+      - instance
+      - bodyCondition
+      - class
+      - datatype
+      - interface
+      - isQuery
+      - redefinedOperation
+      - defaultValue
+      - direction
+      - isException
+      - isStream
+      - parameterSet
+      - aggregation
+      - association
+      - associationEnd
+      - isDerivedUnion
+      - isID
+      - opposite
+      - owningAssociation
+      - qualifier
+      - subsettedProperty
+      - isLeaf
+      - extendedSignature
+      - inheritedParameter
+      - definingFeature
+      - owningInstance
+      - returnInformation
+      - isUnmarshall
+      - input
+      - output
+      - event
+      - body
+      - language
+      - realization
+      - messageKind
+      - messageSort
+      - receiveEvent
+      - sendEvent
+      - signature
+      - toAfter
+      - toBefore
+      - invariant
+      - conveyed
+      - informationSource
+      - informationTarget
+      - realizingActivityEdge
+      - realizingConnector
+      - realizingMessage
+      - represented
+      - fileName
+      - manifestation
+      - nestedArtifact
+      - configuration
+      - deployedArtifact
+      - deployment
+      - deploymentLocation
+      - executionLocation
+      - deployedElement
+      - utilizedElement
+      - nestedNode
+      - mapping
+      - annotatedElement
+      - constrainedElement
+      - ownedComment
+      - alias
+      - importedElement
+      - importingNamespace
+      - visibility
+      - lowerValue
+      - upperValue
+      - name
+      - nameExpression
+      - qualifiedName
+      - importedMember
+      - importedPackage
+      - owningTemplateParameter
+      - templateBinding
+      - boundElement
+      - parameterSubstitution
+      - ownedDefault
+      - ownedParameteredElement
+      - actual
+      - formal
+      - ownedActual
+      - template
+      - package
+      - isReentrant
+      - redefinedBehavior
+      - changeExpression
+      - isRelative
+      - when
+      - port
+      - end
+      - isLocallyReentrant
+      - localPostcondition
+      - localPrecondition
+      - fromAction
+      - insertAt
+      - isReplaceAll
+      - isSynchronous
+      - bodyOutput
+      - decider
+      - predecessorClause
+      - successorClause
+      - test
+      - object
+      - clause
+      - isAssured
+      - isDeterminate
+      - endData
+      - isDestroyLinks
+      - isDestroyOwnedObjects
+      - regionAsInput
+      - regionAsOutput
+      - inputElement
+      - mode
+      - outputElement
+      - onPort
+      - inputValue
+      - destroyAt
+      - isDestroyDuplicates
+      - bodyPart
+      - isTestedFirst
+      - loopVariable
+      - loopVariableInput
+      - setupPart
+      - outputValue
+      - isControl
+      - exception
+      - isDirect
+      - newClassifier
+      - oldClassifier
+      - collection
+      - reducer
+      - isRemoveDuplicates
+      - removeAt
+      - replyToCall
+      - replyValue
+      - request
+      - edge
+      - node
+      - activity
+      - executableNode
+      - structuralFeature
+      - mustIsolate
+      - structuredNodeInput
+      - structuredNodeOutput
+      - first
+      - second
+      - unmarshallType
+      - group
+      - isSingleExecution
+      - partition
+      - structuredNode
+      - inGroup
+      - inPartition
+      - inStructuredNode
+      - interrupts
+      - redefinedEdge
+      - weight
+      - containedEdge
+      - containedNode
+      - inActivity
+      - subgroup
+      - superGroup
+      - inInterruptibleRegion
+      - redefinedNode
+      - isDimension
+      - isExternal
+      - subpartition
+      - superPartition
+      - decisionInput
+      - decisionInputFlow
+      - exceptionInput
+      - exceptionType
+      - handlerBody
+      - protectedNode
+      - handler
+      - interruptingEdge
+      - isCombineDuplicate
+      - joinSpec
+      - isMulticast
+      - isMultireceive
+      - selection
+      - transformation
+      - inState
+      - isControlType
+      - ordering
+      - upperBound
+      - activityScope
+      - scope
+      - expr
+      - observation
+      - firstEvent
+      - max
+      - min
+      - symbol
+      - owningExpression
+      - subExpression
+      - extendedCase
+      - ownedElement
+      - owner
+      - namespace
+      - ownedMember
+      - redefinedElement
+      - extension
+      - extensionLocation
+      - addition
+      - includingCase
+      - extend
+      - extensionPoint
+      - include
+      - subject
+      - endType
+      - memberEnd
+      - navigableOwnedEnd
+      - isActive
+      - superClass
+      - collaborationRole
+      - roleBinding
+      - isIndirectlyInstantiated
+      - provided
+      - required
+      - abstraction
+      - realizingClassifier
+      - redefinedConnector
+      - definingEnd
+      - partWithPort
+      - role
+      - ownedPort
+      - isBehavior
+      - isConjugated
+      - isService
+      - redefinedPort
+      - ownedConnector
+      - part
+      - entry
+      - exit
+      - state
+      - generalMachine
+      - specificMachine
+      - conformance
+      - postCondition
+      - preCondition
+      - referred
+      - stateMachine
+      - extendedRegion
+      - subvertex
+      - transition
+      - connection
+      - connectionPoint
+      - deferrableTrigger
+      - doActivity
+      - isOrthogonal
+      - isSimple
+      - isSubmachineState
+      - region
+      - stateInvariant
+      - submachine
+      - extendedStateMachine
+      - client
+      - supplier
+      - member
+      - ownedRule
+      - relatedElement
+      - attribute
+      - feature
+      - redefinedProperty
+      scope: entity.other.attribute-name.attribute.WORD.SYNTAX
+      pop: true
+    - include: virtualFeature

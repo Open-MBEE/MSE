@@ -1,0 +1,16 @@
+{
+  "version": "0.1.0",
+  "private": true,
+  "license": "ISC",
+  "author": {
+    "name": "Blake Regalia",
+    "email": "blake.d.regalia@jpl.nasa.gov"
+  },
+  "scripts": {
+    "build": "npx emk && npx emk"
+  },
+  "repository": "https://github.com/Open-MBEE/MSE",
+  "devDependencies": {
+    "syntax-source": "^0.4.3"
+  }
+}

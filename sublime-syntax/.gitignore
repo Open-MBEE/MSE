@@ -1,0 +1,13 @@
+# compiled distributions
+build
+
+# dependencies
+node_modules
+.npm-packages
+package-lock.json
+
+# developer scrap files
+/scrap
+
+# ignore files
+*.ignore

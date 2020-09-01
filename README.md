@@ -1,6 +1,15 @@
-* MSE project aims to share and collaboratively develop useful MapleMBSE configurations
-This project is under Apache license.
+# MSE Sample Configurations and Sublime Text 3 Syntax
 
-- SST
-     * We will develop configurations for SST (SysMLv2 Submission Team)
+### Sample Configurations
+Share and collaboratively develop useful MapleMBSE configurations
 
+**SST**
+ - Configurations for SST (SysMLv2 Submission Team)
+
+
+### [Sublime Text 3]((sublime-syntax)) Syntax
+![Syntax Highlighting Preview](sublime-syntax/docs/preview-afterglow-markdown.png)
+
+
+### License
+This project is under the Apache license.
