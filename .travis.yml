@@ -18,4 +18,4 @@ before_script:
   - "cd sublime-syntax"
 script: "npm run build"
 after_deploy:
-  - ./sublime-syntax/push-assets.sh
+  - ./push-assets.sh
