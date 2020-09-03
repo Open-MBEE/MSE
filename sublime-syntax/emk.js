@@ -7,6 +7,16 @@ const supplementals = (s_ext) => a_supplementals.filter(s => s.endsWith(s_ext));
 module.exports = {
 	tasks: {
 		all: 'build/**',
+
+		release: {
+			patch: () => ({
+				run: /* syntax: bash */ `
+					npm --no-git-tag-version version patch
+					emk channels/sublime/**
+					git commit -p
+				`,
+			}),
+		},
 	},
 
 	defs: {

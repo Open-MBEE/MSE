@@ -17,12 +17,15 @@ process.stdin
 					labels: [
 						'maplembse',
 						'jpl',
+						'mbse',
+						'mse',
+						'openmbee'
 					],
 					releases: [
 						{
 							version: g_package.version,
 							sublime_text: ">=3092",
-							url: 'https://raw.githubusercontent.com/Open-MBEE/MSE/assets/build/sublime/MapleMBSE-MSE.sublime-package',
+							url: 'https://github.com/Open-MBEE/MSE/raw/assets/sublime-syntax/build/sublime/MapleMBSE-MSE.sublime-package',
 							date: (new Date()).toISOString().replace(/T/, ' ').replace(/\.\d+Z/, ''),
 						},
 					],

@@ -196,7 +196,7 @@ contexts:
 
   syncTableSchemaParams:
     - open.paren: group.sync-table
-      set: [syncTableSchemaParams_TERMINATE, syncTableSchema_MORE*, syncTableParam]
+      set: [syncTableSchemaParams_TERMINATE, syncTableSchema_MORE*, syncTableParam_AFTER_ID, syncTableId]
     - bail
 
   syncTableSchemaParams_TERMINATE:
@@ -214,12 +214,7 @@ contexts:
   syncTableSchema_MORE:
     - match: ','
       scope: punctuation.separator.sync-table-schema.SYNTAX
-      set: syncTableParam
-
-  syncTableParam:
-    - match: '{{IDENTIFIER}}'
-      scope: variable.other.readwrite.sync-table-param.SYNTAX
-      set: syncTableParam_AFTER_ID
+      set: [syncTableParam_AFTER_ID, syncTableId]
 
   syncTableParam_AFTER_ID:
     - match: ':'
@@ -317,11 +312,36 @@ contexts:
   referenceDecomposition:
     - word.exact: reference-decomposition
       scope: storage.type.reference-decomposition.SYNTAX
-      set: [referenceDecomposition_AFTER_ASSIGNMENT, assignment, id]
+      set: [referenceDecompositionBlock, syncTableId, assignment, id]
 
-  referenceDecomposition_AFTER_ASSIGNMENT:
-    - throw
+  referenceDecompositionBlock:
+    - open.brace: definition.group.reference-decomposition
+      set: [referenceDecompositionBlock_TERMINATE, foreignColumn*]
 
+  foreignColumn:
+    - words.exact:
+      - foreign-key
+      - foreign
+      scope: storage.modifier.WORD.SYNTAX
+      set: foreignColumn_AFTER_KEY
+
+  foreignColumn_AFTER_KEY:
+    - word.exact: column
+      scope: storage.type.column.SYNTAX
+      set: [id, as, columnId]
+
+  as:
+    - word.exact: as
+      pop: true
+
+  columnId:
+    - match: '{{IDENTIFIER}}'
+      scope: variable.other.readwrite.column.SYNTAX
+      pop: true
+
+  referenceDecompositionBlock_TERMINATE:
+    - close.brace: definition.group.reference-decomposition
+      pop: true
 
   #
 
@@ -663,7 +683,7 @@ contexts:
       pop: true
     - words.exact:
       - associatedProperty
-      - directAssociatedProperty
+      - directedAssociatedProperty
       - otherAssociatedEnd
       scope: support.module.virtual-feature.association.WORD.SYNTAX
       pop: true
@@ -1262,6 +1282,7 @@ contexts:
       - reducer
       scope: entity.other.attribute-name.reference.WORD.SYNTAX
       pop: true
+    - include: virtualFeature
 
   attribute:
     - words.exact:
@@ -1674,3 +1695,10 @@ contexts:
       scope: entity.other.attribute-name.attribute.WORD.SYNTAX
       pop: true
     - include: virtualFeature
+    - include: implicitXML
+
+  implicitXML:
+    - words.exact:
+      - ID
+      scope: support.module.xml.WORD.SYNTAX
+      pop: true

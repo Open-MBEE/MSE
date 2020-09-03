@@ -6,16 +6,17 @@
 			"details": "https://github.com/Open-MBEE/MSE",
 			"labels": [
 				"maplembse",
+				"jpl",
 				"mbse",
 				"mse",
 				"openmbee"
 			],
 			"releases": [
 				{
-					"version": "0.1.6",
+					"version": "0.1.7",
 					"sublime_text": ">=3092",
 					"url": "https://github.com/Open-MBEE/MSE/raw/assets/sublime-syntax/build/sublime/MapleMBSE-MSE.sublime-package",
-					"date": "2020-09-01 22:07:59"
+					"date": "2020-09-03 00:47:07"
 				}
 			]
 		}
