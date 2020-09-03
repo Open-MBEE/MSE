@@ -13,7 +13,7 @@ module.exports = {
 				run: /* syntax: bash */ `
 					npm --no-git-tag-version version patch
 					emk channels/sublime/**
-					git commit -p
+					git add package.json channel/
 				`,
 			}),
 		},
