@@ -11,6 +11,7 @@ deploy:
   file_glob: true
   file: build/sublime/*
   skip_cleanup: true
+  if: branch = master
   on:
     tags: true
     repo: Open-MBEE/MSE

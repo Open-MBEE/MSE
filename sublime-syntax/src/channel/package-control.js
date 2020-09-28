@@ -25,7 +25,7 @@ process.stdin
 						{
 							version: g_package.version,
 							sublime_text: ">=3092",
-							url: 'https://github.com/Open-MBEE/MSE/raw/assets/sublime-syntax/build/sublime/MapleMBSE-MSE.sublime-package',
+							url: `https://github.com/Open-MBEE/MSE/raw/v${g_package.version}-asset/sublime-syntax/build/sublime/MapleMBSE-MSE.sublime-package`,
 							date: (new Date()).toISOString().replace(/T/, ' ').replace(/\.\d+Z/, ''),
 						},
 					],
