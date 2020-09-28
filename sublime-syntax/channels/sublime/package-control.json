@@ -13,10 +13,10 @@
 			],
 			"releases": [
 				{
-					"version": "0.1.7",
+					"version": "0.2.2",
 					"sublime_text": ">=3092",
-					"url": "https://github.com/Open-MBEE/MSE/raw/assets/sublime-syntax/build/sublime/MapleMBSE-MSE.sublime-package",
-					"date": "2020-09-03 00:47:07"
+					"url": "https://github.com/Open-MBEE/MSE/raw/v0.2.2-asset/sublime-syntax/build/sublime/MapleMBSE-MSE.sublime-package",
+					"date": "2020-09-28 17:47:40"
 				}
 			]
 		}
