@@ -277,7 +277,7 @@ contexts:
       - referenceDecomposition
 
   propertyMapping:
-    - lookahead: '(key|column){{_WORD_BOUNDARY}}'
+    - lookahead: '(key|column|reference-query){{_WORD_BOUNDARY}}'
     - goto: [propertyMapping_AFTER_KEY, key?]
 
   propertyMapping_AFTER_KEY:
