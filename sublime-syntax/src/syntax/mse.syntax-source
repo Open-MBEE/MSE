@@ -507,6 +507,9 @@ contexts:
       pop: true
 
   viewColumn:
+    - match: \bunmapped-field\b
+      scope: storage.modifier.view-column.unmapped-field.WORD.SYNTAX
+      pop: true
     - goto: [viewColumn_AFTER_ID, id, field, ref?, key?]
 
   viewColumn_AFTER_ID:
